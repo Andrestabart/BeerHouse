@@ -1,0 +1,50 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #fdf6e3;
+    color: #333;
+    margin: 0;
+    padding: 1em;
+}
+h1 {
+    color: #4a4a4a;
+    font-family: 'Courier New', Courier, monospace;
+}
+.order-form {
+    background: #ffe8e8;
+    padding: 1em;
+    border-radius: 5px;
+    margin-bottom: 2em;
+}
+.order-form label {
+    display: block;
+    margin-bottom: 0.5em;
+}
+.order-form input {
+    padding: 0.3em;
+    width: 100%;
+    margin-top: 0.2em;
+}
+button, .button {
+    background: #ffb6c1;
+    border: none;
+    padding: 0.5em 1em;
+    color: #333;
+    text-decoration: none;
+    border-radius: 3px;
+    font-weight: bold;
+}
+button:hover, .button:hover {
+    background: #ffc8d2;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 0.5em;
+}
+.actions {
+    margin-top: 1em;
+}
+.error {color: red;}
