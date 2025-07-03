@@ -2,56 +2,44 @@
 require_once 'db.php';
 
 function simplePDF($orders) {
-    $pdf = "%PDF-1.4\n";
     $objects = [];
-    $pages = [];
-    $currentObject = 1;
+    $objNum = 1;
 
-    // fonts object
-    $objects[] = "$currentObject 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
-    $fontObj = $currentObject;
-    $currentObject++;
+    $fontObj = $objNum++;
+    $objects[$fontObj] = "$fontObj 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
 
-    // page content
-    $content = "BT\n/F1 12 Tf\n50 750 Td\n(Tabla de pedidos) Tj\n";
-    $y = 720;
+    $content = "BT\n/F1 12 Tf\n1 0 0 1 50 750 Tm (Tabla de pedidos) Tj\n";
+    $y = 730;
     foreach ($orders as $o) {
+        $y -= 20;
         $line = sprintf('%s %s %s %s x%s $%0.2f',
             date('H:i', strtotime($o['created_at'])),
             $o['name'], $o['phone'], $o['item'], $o['qty'], $o['price']);
-        $content .= sprintf("50 %d Td (%s) Tj\n", $y, str_replace(['(',')','\\'],['\\(','\\)','\\\\'],$line));
-        $y -= 20;
+        $safe = str_replace(['(',')','\\'], ['\\(','\\)','\\\\'], $line);
+        $content .= "1 0 0 1 50 $y Tm ($safe) Tj\n";
     }
     $content .= "ET";
 
-    $objects[] = "$currentObject 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n$content\nendstream\nendobj\n";
-    $contentObj = $currentObject;
-    $currentObject++;
+    $contentObj = $objNum++;
+    $objects[$contentObj] = "$contentObj 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n$content\nendstream\nendobj\n";
 
-    // page object
-    $objects[] = "$currentObject 0 obj\n<< /Type /Page /Parent 0 0 R /MediaBox [0 0 595 842] /Contents $contentObj 0 R /Resources << /Font << /F1 $fontObj 0 R >> >> >>\nendobj\n";
-    $pageObj = $currentObject;
-    $currentObject++;
-    $pages[] = $pageObj;
+    $pageObj = $objNum++;
+    $pagesObj = $objNum; // next object number
+    $objects[$pageObj] = "$pageObj 0 obj\n<< /Type /Page /Parent $pagesObj 0 R /MediaBox [0 0 595 842] /Contents $contentObj 0 R /Resources << /Font << /F1 $fontObj 0 R >> >> >>\nendobj\n";
 
-    // pages object
-    $kids = implode(' 0 R ', $pages) . ' 0 R';
-    $objects[] = "$currentObject 0 obj\n<< /Type /Pages /Kids [ $kids ] /Count " . count($pages) . " >>\nendobj\n";
-    $pagesObj = $currentObject;
-    $currentObject++;
+    $objects[$pagesObj] = "$pagesObj 0 obj\n<< /Type /Pages /Kids [ $pageObj 0 R ] /Count 1 >>\nendobj\n";
+    $objNum++;
 
-    // catalog object
-    $objects[] = "$currentObject 0 obj\n<< /Type /Catalog /Pages $pagesObj 0 R >>\nendobj\n";
-    $catalogObj = $currentObject;
-    $currentObject++;
+    $catalogObj = $objNum++;
+    $objects[$catalogObj] = "$catalogObj 0 obj\n<< /Type /Catalog /Pages $pagesObj 0 R >>\nendobj\n";
 
-    // xref
-    $xref = "xref\n0 $currentObject\n0000000000 65535 f \n";
+    $pdf = "%PDF-1.4\n";
+    $xref = "xref\n0 $objNum\n0000000000 65535 f \n";
     $offsets = []; $pos = strlen($pdf);
-    foreach ($objects as $obj) { $offsets[] = $pos; $pdf .= $obj; $pos += strlen($obj); }
+    for ($i = 1; $i < $objNum; $i++) { $offsets[] = $pos; $pdf .= $objects[$i]; $pos += strlen($objects[$i]); }
     foreach ($offsets as $off) { $xref .= sprintf("%010d 00000 n \n", $off); }
     $pdf .= $xref;
-    $pdf .= "trailer\n<< /Size $currentObject /Root $catalogObj 0 R >>\nstartxref\n" . $pos . "\n%%EOF";
+    $pdf .= "trailer\n<< /Size $objNum /Root $catalogObj 0 R >>\nstartxref\n" . $pos . "\n%%EOF";
 
     return $pdf;
 }
